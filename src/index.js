@@ -4,13 +4,14 @@ import express from 'express';
 import connectDB from './config/db.js';
 import User from './models/User.js';
 import bcrypt from 'bcryptjs';
-
+import cookieParser from 'cookie-parser';
 const app = express();
 
 const PORT = process.env.PORT || 3000;
 connectDB();
 
 app.use(express.json());
+app.use(cookieParser());
 app.post('/api/register', async (req, res) => {
     const { nome, email, password, telefono, codiceFiscale, canaleNotifiche } = req.body;
     try {
@@ -26,6 +27,16 @@ app.post('/api/register', async (req, res) => {
         res.status(500).send('Errore del server');
     }
 });
+app.get('api/users', async (req, res) => {
+    try {
+        const users = await Users.findById(req.params.id).select('-password');
+        if (!users) return res.status(404).json({ msg: 'utwenti non trovati' });
+        res.json(users);
 
+    }
+    catch (err) {
+        res.status(500).send('Errore del server');
+    }
+})
 
 app.listen(PORT, () => console.log(`Server su porto ${PORT}`));
