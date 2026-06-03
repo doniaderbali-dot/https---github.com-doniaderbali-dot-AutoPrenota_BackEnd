@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import express from 'express';
+import cors from 'cors';
 
 import connectDB from './config/db.js';
 import User from './models/User.js';
@@ -7,8 +8,9 @@ import bcrypt from 'bcryptjs';
 import cookieParser from 'cookie-parser';
 const app = express();
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5000;
 connectDB();
+app.use(cors({ origin: 'http://localhost:3000', credentials: true }));
 
 app.use(express.json());
 app.use(cookieParser());
@@ -27,12 +29,23 @@ app.post('/api/register', async (req, res) => {
         res.status(500).send('Errore del server');
     }
 });
-app.get('api/users', async (req, res) => {
+app.post('/api/login', async (req, res) => {
+    const { email, password } = req.body;
     try {
-        const users = await Users.findById(req.params.id).select('-password');
-        if (!users) return res.status(404).json({ msg: 'utwenti non trovati' });
-        res.json(users);
-
+        const user = await User.findOne({ email });
+        if (!user) return res.status(400).json({ msg: 'Credenziali non valide' });
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) return res.status(400).json({ msg: 'Credenziali non valide' });
+        res.json({ msg: 'Login completato', userId: user.id });
+    } catch (err) {
+        res.status(500).send('Errore del server');
+    }
+});
+app.get('/api/users', async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id).select('-password');
+        if (!user) return res.status(404).json({ msg: 'Utente non trovato' });
+        res.json(user);
     }
     catch (err) {
         res.status(500).send('Errore del server');
