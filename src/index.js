@@ -16,10 +16,11 @@ app.use(express.json());
 app.use(cookieParser());
 app.post('/api/register', async (req, res) => {
     const { nome, email, password, telefono, codiceFiscale, canaleNotifiche } = req.body;
+    const nomeFinale = name || nome;
     try {
         let userExists = await User.findOne({ email });
         if (userExists) return res.status(400).json({ msg: 'Utente già esistente' });
-        const user = new User({ nome, email, password, telefono, codiceFiscale, canaleNotifiche });
+        const user = new User({ nome: nomeFinale, email, password, telefono, codiceFiscale, canaleNotifiche });
         const salt = await bcrypt.genSalt(10);
         user.password = await bcrypt.hash(password, salt);
         await user.save();
@@ -36,12 +37,18 @@ app.post('/api/login', async (req, res) => {
         if (!user) return res.status(400).json({ msg: 'Credenziali non valide' });
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) return res.status(400).json({ msg: 'Credenziali non valide' });
-        res.json({ msg: 'Login completato', userId: user.id });
+        res.json({
+            id: user.id,
+            name: user.nome,
+            email: user.email,
+            msg: 'Login completato'
+        });
     } catch (err) {
+        console.error(err);
         res.status(500).send('Errore del server');
     }
 });
-app.get('/api/users', async (req, res) => {
+app.get('/api/users/:id', async (req, res) => {
     try {
         const user = await User.findById(req.params.id).select('-password');
         if (!user) return res.status(404).json({ msg: 'Utente non trovato' });
